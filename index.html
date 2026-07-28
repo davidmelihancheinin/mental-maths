@@ -74,6 +74,12 @@ body.playing nav{display:none}
 .seg{display:flex;background:var(--bg2);border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .seg button{padding:6px 11px;font-size:13px;color:var(--dim)}
 .seg button.on{background:var(--acc);color:#fff;font-weight:650}
+.seg.wide{width:100%}
+.seg.wide button{flex:1;padding:10px 0;font-size:14px}
+.pseudo-input{background:var(--bg2);border:1px solid var(--line);border-radius:10px;color:var(--txt);
+  padding:8px 10px;font-size:14px;width:130px;text-align:right;font-family:inherit}
+.pseudo-input::placeholder{color:var(--dim2)}
+.pseudo-input:focus{outline:none;border-color:var(--acc)}
 
 /* ---------- play ---------- */
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
@@ -207,6 +213,10 @@ table.tb td:last-child{text-align:right;font-weight:650}
       <span>Habillage business</span>
       <div class="seg" id="seg-biz"></div>
     </div>
+    <div class="setline">
+      <span>Pseudo (classement)</span>
+      <input id="pseudo-input" class="pseudo-input" type="text" maxlength="24" placeholder="Ton prénom" autocomplete="off">
+    </div>
   </div>
 
   <div style="margin-top:18px"><button class="btn" id="go">Démarrer la série</button></div>
@@ -294,13 +304,25 @@ table.tb td:last-child{text-align:right;font-weight:650}
 <!-- ═════════ STATS ═════════ -->
 <section id="s-stats" class="screen">
   <h1>Progression</h1>
-  <p class="sub">Tes records et ton historique.</p>
-  <div class="recgrid" id="glob"></div>
-  <h2>Records par mode</h2>
-  <div id="recs"></div>
-  <h2>10 dernières séries</h2>
-  <div class="card" id="hist"></div>
-  <button class="danger" id="reset">Réinitialiser toutes les statistiques</button>
+  <p class="sub">Tes records et ceux du groupe.</p>
+
+  <div class="seg wide" id="seg-view">
+    <button data-v="me" class="on">Mes stats</button>
+    <button data-v="lb">Classement</button>
+  </div>
+
+  <div id="view-me">
+    <div class="recgrid" id="glob" style="margin-top:16px"></div>
+    <h2>Records par mode</h2>
+    <div id="recs"></div>
+    <h2>10 dernières séries</h2>
+    <div class="card" id="hist"></div>
+    <button class="danger" id="reset">Réinitialiser toutes les statistiques</button>
+  </div>
+
+  <div id="view-lb" style="display:none;margin-top:16px">
+    <div id="lb-box"></div>
+  </div>
 </section>
 
 </div>
@@ -312,6 +334,23 @@ table.tb td:last-child{text-align:right;font-weight:650}
     <button data-nav="stats"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Progression</button>
   </div>
 </nav>
+
+<!-- ═════════ CLASSEMENT PARTAGÉ (Firebase) ═════════
+     Colle ici la config obtenue dans la console Firebase (Paramètres du projet
+     → tes applications → icône Web). Tant que apiKey vaut "REMPLACE_MOI", le
+     classement reste désactivé et le reste de l'app fonctionne normalement. -->
+<script>
+  window.FIREBASE_CONFIG = {
+    apiKey: "REMPLACE_MOI",
+    authDomain: "REMPLACE_MOI",
+    projectId: "REMPLACE_MOI",
+    storageBucket: "REMPLACE_MOI",
+    messagingSenderId: "REMPLACE_MOI",
+    appId: "REMPLACE_MOI"
+  };
+</script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
 "use strict";
@@ -874,13 +913,48 @@ On remet la virgule : <b>≈ 159 M€</b></div>
    ÉTAT & PERSISTANCE
    ══════════════════════════════════════════════════════════ */
 const KEY = 'mmc_v1';
-let store = {records:{}, totalQ:0, totalOk:0, timeSum:0, history:[], cat:'mix', diff:1, timer:25, biz:0};
+let store = {records:{}, totalQ:0, totalOk:0, timeSum:0, history:[], cat:'mix', diff:1, timer:25, biz:0, pseudo:'', pending:[]};
 try{ const raw = localStorage.getItem(KEY); if(raw) store = Object.assign(store, JSON.parse(raw)); }catch(e){}
 const save = () => { try{ localStorage.setItem(KEY, JSON.stringify(store)); }catch(e){} };
 const rkey = () => store.cat+'|'+store.diff;
 const bestOf = k => store.records[k] || 0;
 
 let game = null, tick = null;
+
+/* ══════════════════════════════════════════════════════════
+   CLASSEMENT PARTAGÉ (Firebase — dégrade silencieusement si absent)
+   ══════════════════════════════════════════════════════════ */
+let db = null;
+try{
+  if(window.firebase && FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey !== 'REMPLACE_MOI'){
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.firestore();
+  }
+}catch(e){ db = null; }
+
+function queueRun(run){
+  store.pending = store.pending || [];
+  store.pending.push(run);
+  save();
+  flushPending();
+}
+
+let flushing = false;
+function flushPending(){
+  if(!db || flushing || !navigator.onLine) return;
+  const q = store.pending || [];
+  if(!q.length) return;
+  flushing = true;
+  db.collection('runs').add({
+    pseudo: q[0].pseudo, cat: q[0].cat, diff: q[0].diff, streak: q[0].streak, reason: q[0].reason,
+    ts: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(()=>{
+    store.pending.shift(); save(); flushing = false;
+    if(store.pending.length) flushPending();
+    else if($('#s-stats').classList.contains('on') && $('#view-lb').style.display!=='none') renderLeaderboard();
+  }).catch(()=>{ flushing = false; });
+}
+window.addEventListener('online', flushPending);
 
 /* ══════════════════════════════════════════════════════════
    NAVIGATION
@@ -921,6 +995,10 @@ function renderHome(){
   $('#seg-biz').innerHTML = [[0,'Non'],[1,'Oui']].map(([v,l])=>
     `<button data-b="${v}" class="${store.biz===v?'on':''}">${l}</button>`).join('');
   $('#seg-biz').querySelectorAll('button').forEach(b=>b.onclick=()=>{store.biz=+b.dataset.b;save();renderHome();});
+
+  const pi = $('#pseudo-input');
+  pi.value = store.pseudo || '';
+  pi.oninput = () => { store.pseudo = pi.value.slice(0,24); save(); };
 
   $('#h-best').textContent = Math.max(0,...Object.values(store.records),0);
   $('#h-tot').textContent  = store.totalQ;
@@ -1078,6 +1156,10 @@ function endRun(reason, given){
     ? `<span style="color:var(--ok);font-weight:700">🏆 Nouveau record ! (précédent : ${prev})</span>`
     : `bonnes réponses d'affilée · record : ${bestOf(k)}`;
 
+  if(store.pseudo && store.pseudo.trim()){
+    queueRun({pseudo: store.pseudo.trim().slice(0,24), cat: store.cat, diff: store.diff, streak: game.streak, reason});
+  }
+
   show('sol');
 }
 
@@ -1140,14 +1222,67 @@ function renderStats(){
 
 $('#reset').onclick = ()=>{
   if(!confirm('Effacer tous les records et statistiques ?')) return;
-  store = {records:{}, totalQ:0, totalOk:0, timeSum:0, history:[], cat:store.cat, diff:store.diff, timer:store.timer, biz:store.biz};
+  store = {records:{}, totalQ:0, totalOk:0, timeSum:0, history:[], cat:store.cat, diff:store.diff, timer:store.timer, biz:store.biz, pseudo:store.pseudo, pending:store.pending};
   save(); renderStats(); renderHome();
 };
+
+/* ══════════════════════════════════════════════════════════
+   CLASSEMENT (vue « groupe » de l'écran Progression)
+   ══════════════════════════════════════════════════════════ */
+$('#seg-view').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+  $('#seg-view').querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  const isLb = b.dataset.v==='lb';
+  $('#view-me').style.display = isLb ? 'none' : '';
+  $('#view-lb').style.display = isLb ? '' : 'none';
+  if(isLb) renderLeaderboard();
+});
+
+function renderLeaderboard(){
+  const box = $('#lb-box');
+  if(!db){
+    box.innerHTML = `<div class="card"><div class="empty">Classement pas encore configuré.</div></div>`;
+    return;
+  }
+  box.innerHTML = `<div class="card"><div class="empty">Chargement…</div></div>`;
+  Promise.all([
+    db.collection('runs').orderBy('streak','desc').limit(200).get(),
+    db.collection('runs').orderBy('ts','desc').limit(30).get()
+  ]).then(([topSnap, recentSnap])=>{
+    const label = r => `${(CATS.find(c=>c.id===r.cat)||{t:r.cat}).t} · ${(DIFFS[r.diff]||{t:''}).t}`;
+    const byMode = {};
+    topSnap.docs.map(d=>d.data()).forEach(r=>{
+      const k = r.cat+'|'+r.diff;
+      if(!byMode[k] || r.streak > byMode[k].streak) byMode[k] = r;
+    });
+    const modeRows = Object.values(byMode).sort((a,b)=>b.streak-a.streak);
+    const recentRows = recentSnap.docs.map(d=>d.data());
+
+    box.innerHTML = `
+      <h2 style="margin-top:0">Meilleures séries du groupe</h2>
+      <div class="card">${modeRows.length ? modeRows.map(r=>
+        `<div class="hrow"><div class="s top">${r.streak}</div>
+          <div class="i"><b>${r.pseudo}${r.pseudo===store.pseudo?' (toi)':''}</b><span>${label(r)}</span></div></div>`).join('')
+        : `<div class="empty">Personne n'a encore joué.</div>`}</div>
+      <h2>Activité récente</h2>
+      <div class="card">${recentRows.length ? recentRows.map(r=>{
+        const dt = r.ts && r.ts.toDate ? r.ts.toDate().toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+        return `<div class="hrow"><div class="s">${r.streak}</div>
+          <div class="i"><b>${r.pseudo}${r.pseudo===store.pseudo?' (toi)':''}</b><span>${label(r)} · ${dt}</span></div></div>`;
+      }).join('') : `<div class="empty">Pas encore d'activité.</div>`}</div>
+      ${store.pseudo ? '' : `<p class="mini">Ajoute un pseudo dans les réglages pour apparaître au classement.</p>`}
+      ${store.pending && store.pending.length ? `<p class="mini">${store.pending.length} partie(s) en attente de synchronisation (reviendra dès que tu as du réseau).</p>` : ''}
+    `;
+  }).catch(()=>{
+    box.innerHTML = `<div class="card"><div class="empty">Impossible de charger le classement (vérifie ta connexion).</div></div>`;
+  });
+}
 
 /* ══════════════════════════════════════════════════════════
    INIT
    ══════════════════════════════════════════════════════════ */
 renderHome();
+flushPending();
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
   navigator.serviceWorker.register('sw.js').catch(()=>{});
 }

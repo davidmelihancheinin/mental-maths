@@ -5,8 +5,13 @@ Aucune dépendance, aucun build : un seul fichier HTML autonome.
 
 ## Utilisation
 
-Double-clique sur `index.html`. C'est tout — l'app fonctionne hors-ligne et
-enregistre records et statistiques dans le navigateur (`localStorage`).
+Double-clique sur `Calcul Mental (standalone).html` — c'est le fichier de
+référence désormais (charte crème/bordeaux, succès à débloquer, classement de
+groupe). L'app fonctionne hors-ligne dès le deuxième chargement et enregistre
+records et statistiques dans le navigateur (`localStorage`).
+
+`index.html` (ancienne version, palette sombre) reste dans le dossier mais
+n'est plus maintenu.
 
 ## L'installer sur le téléphone (pour le métro)
 
@@ -46,6 +51,68 @@ méthode en entretien.
 **Progression** — record de série par mode × difficulté, taux de réussite,
 temps moyen par bonne réponse, historique des 30 dernières séries.
 
+**Succès** — 17 badges à débloquer (bronze/argent/or) : séries par difficulté,
+volume de calculs résolus, vitesse moyenne, plus deux succès sociaux liés au
+classement de groupe (rejoindre le classement, en prendre la tête sur un mode).
+
+**Classement du groupe** — toujours visible en bas de l'écran Progression,
+juste sous les succès (voir section suivante).
+
+## Classement partagé entre plusieurs personnes (optionnel)
+
+Par défaut, chaque personne qui ouvre l'app a ses stats isolées dans son
+navigateur. Pour comparer les scores d'un groupe, l'app se connecte à une
+base [Firebase](https://firebase.google.com) partagée — gratuite pour ce
+volume d'usage, sans mot de passe : chacun choisit juste un pseudo dans les
+réglages. Pas de config = le classement affiche juste « pas encore configuré »,
+le reste de l'app fonctionne normalement (aucune dépendance obligatoire).
+
+**Mise en place (une fois, ~5 minutes) :**
+
+1. Va sur [console.firebase.google.com](https://console.firebase.google.com), connecte-toi avec un compte Google.
+2. « Ajouter un projet » → nomme-le (ex. `calcul-mental`) → tu peux désactiver Google Analytics → Créer.
+3. Menu de gauche → **Build → Firestore Database** → « Créer une base de données ».
+   - Choisis une région proche (ex. `eur3 (europe-west)`).
+   - Démarre en **mode production**.
+4. Onglet **Règles** de Firestore → remplace tout par ceci → **Publier** :
+   ```
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /runs/{runId} {
+         allow read: if true;
+         allow create: if request.resource.data.keys().hasOnly(['pseudo','cat','diff','streak','reason','ts'])
+                       && request.resource.data.pseudo is string
+                       && request.resource.data.pseudo.size() > 0 && request.resource.data.pseudo.size() <= 24
+                       && request.resource.data.cat is string && request.resource.data.cat.size() <= 20
+                       && request.resource.data.diff is int && request.resource.data.diff >= 0 && request.resource.data.diff <= 2
+                       && request.resource.data.streak is int && request.resource.data.streak >= 0 && request.resource.data.streak <= 999
+                       && request.resource.data.reason in ['wrong','timeout']
+                       && request.resource.data.ts == request.time;
+         allow update, delete: if false;
+       }
+     }
+   }
+   ```
+   Ces règles rendent chaque partie **infalsifiable et non supprimable** : tout
+   le monde peut lire le classement et ajouter sa propre partie, personne ne
+   peut modifier ou effacer les scores des autres (ni même les siens).
+5. Retour à la page d'accueil du projet (icône maison) → icône **`</>`** (ajouter une app Web).
+   - Nomme-la, ne coche pas Firebase Hosting → Enregistrer l'application.
+   - Copie l'objet `firebaseConfig` qui s'affiche.
+6. Colle cet objet dans `Calcul Mental (standalone).html`, au tout début du bloc
+   `CLASSEMENT PARTAGÉ (Firebase)` juste avant le script principal — remplace
+   les 6 valeurs `"REMPLACE_MOI"` par les tiennes. Republie le fichier là où
+   l'app est hébergée.
+
+La clé `apiKey` n'est pas secrète : elle est destinée à être visible côté client,
+la sécurité vient des règles Firestore collées à l'étape 4.
+
+**Fonctionnement hors-ligne :** une partie se joue et s'enregistre toujours en
+local sans réseau (comme avant). Le résultat est mis en file d'attente et
+envoyé vers Firebase dès qu'une connexion est détectée — utile puisque le
+métro coupe le réseau en cours de trajet.
+
 ## Tolérances
 
 Les calculs « exacts » (multiplications, fractions) exigent la valeur juste.
@@ -63,12 +130,18 @@ Chiffres · `,` ou `.` décimale · `-` signe · `Retour arrière` effacer ·
 ## Structure
 
 ```
-index.html             app complète (UI + moteur de calcul + leçons)
-manifest.webmanifest   métadonnées PWA
-sw.js                  cache hors-ligne
-icon.svg               icône
+Calcul Mental (standalone).html   app complète (UI + moteur de calcul + leçons + succès + classement)
+manifest.webmanifest              métadonnées PWA
+sw.js                              cache hors-ligne
+icon.svg                           icône
+index.html                         ancienne version (palette sombre), non maintenue
 ```
 
 Pour ajouter un type de calcul : une entrée dans `GENS` (elle retourne l'énoncé,
 la réponse, la tolérance et les étapes de décomposition), puis référence son nom
 dans le tableau `g` du mode voulu dans `CATS`.
+
+**Typographie** : la police Inter est chargée depuis Google Fonts (lien
+`<link>` dans le `<head>`). Sans réseau au tout premier chargement, l'app
+retombe sur la police système — purement cosmétique, aucune fonctionnalité
+n'en dépend.
