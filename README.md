@@ -6,12 +6,9 @@ Aucune dépendance, aucun build : un seul fichier HTML autonome.
 ## Utilisation
 
 Double-clique sur `Calcul Mental (standalone).html` — c'est le fichier de
-référence désormais (charte crème/bordeaux, succès à débloquer, classement de
+référence (charte crème/bordeaux, succès à débloquer, classement de
 groupe). L'app fonctionne hors-ligne dès le deuxième chargement et enregistre
 records et statistiques dans le navigateur (`localStorage`).
-
-`index.html` (ancienne version, palette sombre) reste dans le dossier mais
-n'est plus maintenu.
 
 ## L'installer sur le téléphone (pour le métro)
 
@@ -133,8 +130,7 @@ Chiffres · `,` ou `.` décimale · `-` signe · `Retour arrière` effacer ·
 Calcul Mental (standalone).html   app complète (UI + moteur de calcul + leçons + succès + classement)
 manifest.webmanifest              métadonnées PWA
 sw.js                              cache hors-ligne
-icon.svg                           icône
-index.html                         ancienne version (palette sombre), non maintenue
+icon.svg                           icône (charte crème/bordeaux)
 ```
 
 Pour ajouter un type de calcul : une entrée dans `GENS` (elle retourne l'énoncé,

@@ -1,5 +1,5 @@
 /* Service worker : met l'app en cache pour un fonctionnement 100 % hors-ligne (métro). */
-const CACHE = 'calcul-mental-v3';
+const CACHE = 'calcul-mental-v4';
 const APP_FILE = './Calcul Mental (standalone).html';
 const FILES = [APP_FILE, './manifest.webmanifest', './icon.svg'];
 // SDK du classement partagé + police : mis en cache en best-effort, ne doit
