@@ -46,16 +46,18 @@ pour le remplacer — GitHub Pages republie automatiquement en ~1 minute.
 **Entraînement** — séries chronométrées (25 s par calcul). Une erreur ou un
 dépassement du chrono arrête la série.
 
-| Mode | Contenu |
+| Section | Contenu |
 |---|---|
-| Mix complet | tous les types en aléatoire |
-| Pourcentages | `53 % × 743`, fractions, parts |
-| Multiplications | 2 × 2 puis 2 × 3 chiffres |
-| Divisions & ratios | divisions, conversion d'un ratio en % |
-| Réflexes conseil | variations, valeur initiale, règle de 72, croissance composée, market sizing |
-
-Trois difficultés, et une option « habillage business » qui reformule les
-calculs en énoncés de mission (marge, part de marché, churn…).
+| Opérations de base | addition, soustraction, multiplication, division |
+| Pourcentages | calculs, hausses, baisses, variations |
+| Fractions et décimales | conversions et simplifications |
+| Approximations | estimer vite, ordres de grandeur |
+| Formules business | revenu, profit, marge, croissance/CAGR, part de marché, seuil de rentabilité, cash-flow actualisé |
+| Market sizing | approche ROLS, volume et valeur |
+| Études de cas | mini-cas chiffrés type entretien |
+| Techniques avancées | ×5/×25/×50, décomposition, croissance composée |
+| Exercices mixtes | tous les types en aléatoire, pour la rapidité |
+| Scénarios d'entretien | cas complets façon entretien |
 
 **Correction** — à chaque erreur, la décomposition complète du calcul tel qu'il
 fallait le mener de tête, étape par étape, avec un lien vers la leçon associée.
@@ -66,10 +68,10 @@ raccourcis (×5, ×9, ×11, ×25…), division par ancrages, ratio → %, piège
 variations, règle de 72, ordres de grandeur, vérification d'un résultat,
 méthode en entretien.
 
-**Progression** — record de série par mode × difficulté, taux de réussite,
+**Progression** — record de série par section, taux de réussite,
 temps moyen par bonne réponse, historique des 30 dernières séries.
 
-**Succès** — 17 badges à débloquer (bronze/argent/or) : séries par difficulté,
+**Succès** — 17 badges à débloquer (bronze/argent/or) : longueur de série,
 volume de calculs résolus, vitesse moyenne, plus deux succès sociaux liés au
 classement de groupe (créer un compte et rejoindre le classement, prendre la
 tête d'une section ou du classement général).
@@ -100,10 +102,22 @@ de l'app fonctionne normalement (aucune dépendance obligatoire).
 **Mise en place (une fois, ~10 minutes) :**
 
 1. Va sur [console.firebase.google.com](https://console.firebase.google.com), connecte-toi avec un compte Google.
-2. « Ajouter un projet » → nomme-le (ex. `calcul-mental`) → tu peux désactiver Google Analytics → Créer.
-3. Menu de gauche → **Build → Authentication** → « Get started » → onglet **Sign-in method**
-   → active le fournisseur **Email/Password** (premier bouton, pas besoin de « lien par email ») → Enregistrer.
-4. Menu de gauche → **Build → Firestore Database** → « Créer une base de données ».
+2. Si le projet n'existe pas encore : « Ajouter un projet » → nomme-le (ex. `calcul-mental`)
+   → tu peux désactiver Google Analytics → Créer. S'il existe déjà, ouvre-le simplement.
+3. En haut à gauche, clique sur **« Rechercher des produits »** et tape `Authentication`
+   (dans la version actuelle de la console, Authentication n'est plus dans un menu « Build » mais
+   rangé dans la catégorie **Sécurité** du menu de gauche — la barre de recherche fonctionne
+   dans tous les cas). Clique sur **Authentication** → si c'est la première fois, bouton
+   **« Get started »**.
+   - Onglet **Sign-in method** → clique sur **Email/Password** dans la liste des fournisseurs
+     → active le premier interrupteur → **Enregistrer**.
+   - Puis **Settings** (⚙️ en haut de la page Authentication — pas les paramètres généraux du
+     projet, qui n'ont pas ce réglage) → onglet **Authorized domains** → **Add domain** → ajoute
+     le domaine de ton site (juste le nom, ex. `tonpseudo.github.io`, sans `https://` ni chemin).
+     Sans cette étape, toute connexion/inscription échoue avec `auth/unauthorized-domain` une
+     fois le site publié, même si le reste est bien configuré (`localhost` y est déjà par défaut,
+     ce qui explique que les tests en local passent avant que cette étape soit faite).
+4. Recherche `Firestore Database` de la même façon → « Créer une base de données ».
    - Choisis une région proche (ex. `eur3 (europe-west)`).
    - Démarre en **mode production**.
 5. Onglet **Règles** de Firestore → remplace tout par ceci → **Publier** :
@@ -175,15 +189,8 @@ de l'app fonctionne normalement (aucune dépendance obligatoire).
 7. Colle cet objet dans `Calcul Mental (standalone).html`, au tout début du bloc
    `CLASSEMENT PARTAGÉ (Firebase)` juste avant le script principal — remplace
    les 6 valeurs `"REMPLACE_MOI"` par les tiennes. Republie le fichier là où
-   l'app est hébergée.
-8. **Étape indispensable, facile à oublier** : Authentication → **Settings**
-   (roue crantée en haut) → onglet **Authorized domains** → **Add domain** →
-   ajoute le domaine de ton site (juste le domaine, sans `https://` ni chemin :
-   ex. `ton-pseudo-github.github.io`). Sans ça, Firebase refuse toute connexion
-   ou inscription depuis ce site avec une erreur `auth/unauthorized-domain`,
-   même si le reste est bien configuré. `localhost` y est déjà par défaut, ce
-   qui explique que les tests en local peuvent fonctionner alors que le site
-   publié échoue tant que cette étape n'est pas faite.
+   l'app est hébergée. N'oublie pas l'ajout du domaine dans **Authorized
+   domains** (étape 3 ci-dessus) une fois l'app publiée sur son URL définitive.
 
 La clé `apiKey` n'est pas secrète : elle est destinée à être visible côté client,
 la sécurité vient des règles Firestore collées à l'étape 5 et de Firebase

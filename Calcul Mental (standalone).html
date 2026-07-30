@@ -1459,7 +1459,9 @@ function ensureDaily(){
 
 /* ---------- jetons / XP ---------- */
 function addCoins(n, silent){
-  store.coins = Math.max(0, store.coins + Math.round(n));
+  const base = isFinite(store.coins) ? store.coins : 0;
+  const delta = isFinite(n) ? Math.round(n) : 0;
+  store.coins = Math.max(0, base + delta);
   save();
   if(!silent) animateWallet();
 }
@@ -2054,7 +2056,7 @@ function submit(){
     game.streak++;
     const mult = comboMult(game.streak);
     const fast = elapsed < 3;
-    const coinsGain = Math.round((3 + store.diff*2 + (fast?3:0)) * mult);
+    const coinsGain = Math.round((3 + (fast?3:0)) * mult);
     addCoins(coinsGain, true);
     addXp(2, true);
     runReward.coins += coinsGain; runReward.xp += 2;
