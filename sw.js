@@ -1,13 +1,14 @@
 /* Service worker : met l'app en cache pour un fonctionnement 100 % hors-ligne (métro). */
-const CACHE = 'calcul-mental-v4';
+const CACHE = 'calcul-mental-v6';
 const APP_FILE = './Calcul Mental (standalone).html';
-const FILES = [APP_FILE, './manifest.webmanifest', './icon.svg'];
-// SDK du classement partagé + police : mis en cache en best-effort, ne doit
-// jamais bloquer l'installation hors-ligne du reste de l'app si le réseau
-// est absent/lent.
+const FILES = [APP_FILE, './index.html', './manifest.webmanifest', './icon.svg'];
+// SDK du classement partagé + du compte + police : mis en cache en best-effort,
+// ne doit jamais bloquer l'installation hors-ligne du reste de l'app si le
+// réseau est absent/lent.
 const EXTRA = [
   'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js',
   'https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js',
+  'https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap'
 ];
 
