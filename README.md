@@ -43,7 +43,7 @@ pour le remplacer — GitHub Pages republie automatiquement en ~1 minute.
 
 ## Ce que contient l'app
 
-**Entraînement** — séries chronométrées (25 s par calcul). Une erreur ou un
+**Entraînement** — séries chronométrées (60 s par calcul). Une erreur ou un
 dépassement du chrono arrête la série.
 
 | Section | Contenu |

@@ -327,7 +327,7 @@ table.tb td:last-child{text-align:right;font-weight:650}
     <div class="ring">
       <svg viewBox="0 0 76 76"><circle class="bgc" cx="38" cy="38" r="33"></circle>
       <circle class="fg" id="ring" cx="38" cy="38" r="33" stroke-dasharray="207.3" stroke-dashoffset="0"></circle></svg>
-      <div class="num" id="p-time">25</div>
+      <div class="num" id="p-time">60</div>
     </div>
   </div>
 
@@ -1417,7 +1417,7 @@ function updateReducedClass(){ document.body.classList.toggle('reduced', !!store
    ══════════════════════════════════════════════════════════ */
 const KEY = 'mmc_v1';
 let store = {
-  records:{}, totalQ:0, totalOk:0, timeSum:0, history:[], cat:'mixed', timer:25, achievements:{},
+  records:{}, totalQ:0, totalOk:0, timeSum:0, history:[], cat:'mixed', timer:60, achievements:{},
   pseudo:'', pending:[], everSynced:false,
   coins:0, xp:0, rankSeen:0, chests:0, freezes:0, flame:0,
   daily:{date:null, volume:0, bestStreak:0, fast:0, claimed:{}, chestGiven:false},
@@ -1430,6 +1430,7 @@ if(!store.daily) store.daily = {date:null, volume:0, bestStreak:0, fast:0, claim
 if(!store.statsByKey) store.statsByKey = {};
 if(!store.cosmetics) store.cosmetics = {owned:['creme'], equipped:'creme'};
 if(!store.settings) store.settings = {sound:true, haptics:true, reducedMotion:false};
+store.timer = 60; // chrono fixe, non réglable depuis le retrait du sélecteur
 const save = () => { try{ localStorage.setItem(KEY, JSON.stringify(store)); }catch(e){} };
 const rkey = () => store.cat;
 const bestOf = k => store.records[k] || 0;
